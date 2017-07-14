@@ -1,7 +1,6 @@
 package com.auto.cookie;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.util.Log;
 import android.view.Gravity;
@@ -41,7 +40,7 @@ public class CookieOverlay {
                 | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
                // | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
 
-        overlayParams.type = WindowManager.LayoutParams.TYPE_PHONE;
+        overlayParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
         overlayParams.format = PixelFormat.TRANSLUCENT;
         overlayParams.gravity = Gravity.LEFT | Gravity.TOP;
         wm.addView(rootView, overlayParams);

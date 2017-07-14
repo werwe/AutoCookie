@@ -1,15 +1,11 @@
 package com.auto.cookie;
 
-import android.content.SharedPreferences;
-import android.os.Debug;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
 import com.stericson.RootTools.RootTools;
 import com.stericson.RootTools.exceptions.RootDeniedException;
-
-import org.apache.http.cookie.Cookie;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -91,7 +87,7 @@ public class TimeLine {
                 currentTime = System.currentTimeMillis();
                 elapsedTime = currentTime - startTime;
                 try {
-                    Thread.sleep(16);
+                    Thread.sleep(5);
                     processEvent();
 
                 } catch (InterruptedException e) {
@@ -102,7 +98,7 @@ public class TimeLine {
             if(loop)
             {
                endOfTimeLine = true;
-               handler.sendEmptyMessageDelayed(1,3000);
+               handler.sendEmptyMessageDelayed(1,5);
             }
         }
     };

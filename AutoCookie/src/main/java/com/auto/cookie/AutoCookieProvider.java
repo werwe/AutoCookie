@@ -7,7 +7,9 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -21,9 +23,11 @@ public class AutoCookieProvider extends AppWidgetProvider {
 
     public static final String AUTO_COOKIE = "AUTO_COOKIE";
 
-    public enum COOKIES  {
+    public enum COOKIES {
         ZOMBIE
-    };
+    }
+
+    ;
 
     public static final int BTN_START_CODE = 101;
     public static final int BTN_COOKIE_SELECT = 102;
@@ -34,23 +38,22 @@ public class AutoCookieProvider extends AppWidgetProvider {
     public static final String AUTO_COOKIE_SETTING_ACTION = "com.auto.cookie.SETTING_ACTION";
 
 
-
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         super.onUpdate(context, appWidgetManager, appWidgetIds);
-        Log.d(AUTO_COOKIE,"onUpdate");
+        Log.d(AUTO_COOKIE, "onUpdate");
         RemoteViews remoteView = CreateRemoteView(context);
-        appWidgetManager.updateAppWidget(appWidgetIds,remoteView);
+        appWidgetManager.updateAppWidget(appWidgetIds, remoteView);
     }
 
     private RemoteViews CreateRemoteView(Context context) {
 
-        RemoteViews views = new RemoteViews("com.auto.cookie",R.layout.widget_auto_cookie);
+        RemoteViews views = new RemoteViews("com.auto.cookie", R.layout.widget_auto_cookie);
         SharedPreferences pref = context.getSharedPreferences("com.auto.cookie", Context.MODE_PRIVATE);
 
-        SetAutoStartButton(context,pref, views);
+        SetAutoStartButton(context, pref, views);
         SetCookieSelectButton(context, pref, views);
-        SetCookieSettingButton(context,pref,views);
+        SetCookieSettingButton(context, pref, views);
 
         return views;
     }
@@ -61,7 +64,7 @@ public class AutoCookieProvider extends AppWidgetProvider {
     }
 
     private void SetCookieSelectButton(Context context, SharedPreferences pref, RemoteViews views) {
-        String cookie = pref.getString("SELECTED_COOKIE",null);
+        String cookie = pref.getString("SELECTED_COOKIE", null);
         views.setTextViewText(R.id.cookie_select, cookie);
 
         Intent cookieSelectIntent = new Intent(AUTO_SELECT_COOKIE_ACTION);
@@ -73,16 +76,22 @@ public class AutoCookieProvider extends AppWidgetProvider {
     }
 
     private void SetAutoStartButton(Context context, SharedPreferences pref, RemoteViews views) {
-        Log.d(AUTO_COOKIE,"SetAutoStartButton");
+        Log.d(AUTO_COOKIE, "SetAutoStartButton");
+        if (!canDrawOverlay(context)) {
+            requestSystemAlertPermission(context);
+        }
         boolean start = pref.getBoolean("AUTO_START", false);
-        if(start)
-            views.setTextViewText(R.id.auto_start,"OFF");
+        if (start)
+            views.setTextViewText(R.id.auto_start, "OFF");
         else
-            views.setTextViewText(R.id.auto_start,"START");
+            views.setTextViewText(R.id.auto_start, "START");
 
+        Log.d(AUTO_COOKIE, "setOnClickPendingIntent");
+        Intent intent = new Intent(context, AutoCookieProvider.class);
+        intent.setAction(AUTO_TOGGLE_ACTION);
         views.setOnClickPendingIntent(
                 R.id.auto_start,
-                PendingIntent.getBroadcast(context,0,new Intent(AUTO_TOGGLE_ACTION),PendingIntent.FLAG_UPDATE_CURRENT)
+                PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
         );
     }
 
@@ -98,50 +107,43 @@ public class AutoCookieProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        Log.d(AUTO_COOKIE,"onReceive");
-        Log.d(AUTO_COOKIE,intent.getAction());
+        Log.d(AUTO_COOKIE, "onReceive");
 
-        if(intent == null)
+        if (intent == null)
             return;
+        Log.d(AUTO_COOKIE, intent.getAction());
 
         String action = intent.getAction();
-        if(action == AUTO_TOGGLE_ACTION)
-        {
+        if (action == AUTO_TOGGLE_ACTION) {
             //Log.d(AUTO_COOKIE, "check toogle pass");
             //if(checkRunningServices(context,AutoCookieService.class))
             //{
-               // Log.d(AUTO_COOKIE,"check services pass");
-                StartAutoService(context);
+            //  Log.d(AUTO_COOKIE,"check services pass");
+            StartAutoService(context);
             //}
-        }
-        else if(action == AUTO_SELECT_COOKIE_ACTION)
-        {
+        } else if (action == AUTO_SELECT_COOKIE_ACTION) {
 
-        }
-        else if(action == AUTO_COOKIE_SETTING_ACTION)
-        {
+        } else if (action == AUTO_COOKIE_SETTING_ACTION) {
 
         }
     }
 
     private void StopAutoService(Context context) {
-        ActivityManager am = (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         am.getRunningServices(100);
         context.stopService(new Intent(context, AutoCookieService.class));
     }
 
     private void StartAutoService(Context context) {
-        context.startService(new Intent(context,AutoCookieService.class));
+        context.startService(new Intent(context, AutoCookieService.class));
     }
 
-    private boolean checkRunningServices(Context context,Class<?> serviceClass)
-    {
+    private boolean checkRunningServices(Context context, Class<?> serviceClass) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningServiceInfo> services = manager.getRunningServices(100);
-        for(ActivityManager.RunningServiceInfo info : services)
-        {
-            Log.d(AUTO_COOKIE,info.clientPackage);
-            Log.d(AUTO_COOKIE,info.service.getClassName());
+        for (ActivityManager.RunningServiceInfo info : services) {
+            Log.d(AUTO_COOKIE, info.clientPackage);
+            Log.d(AUTO_COOKIE, info.service.getClassName());
             if (serviceClass.getName().equals(info.service.getClassName())) {
                 return true;
             }
@@ -149,7 +151,21 @@ public class AutoCookieProvider extends AppWidgetProvider {
         return false;
     }
 
+    public static void requestSystemAlertPermission(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
+            return;
+        final String packageName = context.getPackageName();
+        final Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + packageName));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
 
-
+    public boolean canDrawOverlay(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return Settings.canDrawOverlays(context);
+        } else {
+            return true;
+        }
+    }
 
 }
