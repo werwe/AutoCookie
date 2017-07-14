@@ -3,33 +3,26 @@ package com.auto.cookie;
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
 import android.os.Handler;
 import android.os.IBinder;
-import android.util.DisplayMetrics;
+import android.os.PowerManager;
 import android.util.Log;
-
-import com.squareup.otto.Bus;
-import com.squareup.otto.Subscribe;
-import com.stericson.RootTools.RootTools;
-import com.stericson.RootTools.exceptions.RootDeniedException;
-import com.stericson.RootTools.execution.CommandCapture;
-
-import android.os.*;
 import android.view.Display;
 import android.view.WindowManager;
 
-import java.io.IOException;
+import com.squareup.otto.Bus;
+import com.squareup.otto.Subscribe;
+import com.stericson.RootTools.execution.CommandCapture;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.*;
 
 /**
  * Created by werwe on 13. 10. 22..
@@ -46,18 +39,19 @@ public class AutoCookieService extends Service {
 
     public static CookiePreference pref;
     PowerManager.WakeLock lock;
+
     @Override
     public void onCreate() {
 
-        Log.d(AUTO_COOKIE,"onCreate service");
+        Log.d(AUTO_COOKIE, "onCreate service");
         pref = new CookiePreference(getApplicationContext());
         bus.register(this);
         StartAuto();
-        mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         try {
             mStartForeground = getClass().getMethod("startForeground", mStartForegroundSignature);
             mStopForeground = getClass().getMethod("stopForeground", mStopForegroundSignature);
-            Log.d("AUTO_COOKIE","start Foreground is exist");
+            Log.d("AUTO_COOKIE", "start Foreground is exist");
             return;
         } catch (NoSuchMethodException e) {
             mStartForeground = mStopForeground = null;
@@ -72,9 +66,8 @@ public class AutoCookieService extends Service {
     @SuppressLint("NewApi")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if(intent == null)
-        {
-            Log.d("AUTO_COOKIE","service restart");
+        if (intent == null) {
+            Log.d("AUTO_COOKIE", "service restart");
         }
         Notification notification;
         Notification.Builder notiBuilder = new Notification.Builder(getApplicationContext());
@@ -91,21 +84,19 @@ public class AutoCookieService extends Service {
 //        notification.setLatestEventInfo(this, getText(R.string.local_service_label),
 //                text, contentIntent);
 
-        startForegroundCompat(10101010,notification);
+        startForegroundCompat(10101010, notification);
         return START_STICKY;
     }
 
     private void SetUpWakeLock() {
         Context context = getApplicationContext();
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        lock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK|PowerManager.ON_AFTER_RELEASE,"AUTO_COOKIE_WAKE_LOCK");
+        lock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, "AUTO_COOKIE_WAKE_LOCK");
         lock.acquire();
     }
 
-    private void StopWakeLock()
-    {
-        if(lock != null)
-        {
+    private void StopWakeLock() {
+        if (lock != null) {
             lock.release();
             lock = null;
         }
@@ -113,7 +104,7 @@ public class AutoCookieService extends Service {
 
     private void StartAuto() {
         overlay = new CookieOverlay(getApplicationContext());
-        LaunchCookieRun(getApplicationContext());
+//        LaunchCookieRun(getApplicationContext());
 //        //item 선택
 //        handler.postDelayed(new Runnable() {
 //            @Override
@@ -124,21 +115,18 @@ public class AutoCookieService extends Service {
     }
 
     boolean loopStarted = false;
+
     @Subscribe
-    public void RecieveLoppStartEvent(CookieOverlay.LoopStartBtnEvent event)
-    {
-        Log.d("AUTO_COOKIE","Recieve Loop Start Event");
-        if(!loopStarted)
-        {
+    public void RecieveLoppStartEvent(CookieOverlay.LoopStartBtnEvent event) {
+        Log.d("AUTO_COOKIE", "Recieve Loop Start Event");
+        if (!loopStarted) {
             SetUpWakeLock();
             StartCookieTimeLine();
             event.button.setText("Loop Stop");
             loopStarted = true;
             pref.setRepeatCount(0);
 
-        }
-        else
-        {
+        } else {
             StopWakeLock();
             StopCookieTimeLine();
             event.button.setText("Loop Start");
@@ -148,16 +136,14 @@ public class AutoCookieService extends Service {
     }
 
     @Subscribe
-    public void RecieveStopAutoCookieEvent(CookieOverlay.StopAutoBtnEvent event)
-    {
-        Log.d("AUTO_COOKIE","Recieve Stop Auto Cookie Event");
+    public void RecieveStopAutoCookieEvent(CookieOverlay.StopAutoBtnEvent event) {
+        Log.d("AUTO_COOKIE", "Recieve Stop Auto Cookie Event");
         stopSelf();
     }
 
     @SuppressLint("NewApi")
-    public void StartCookieTimeLine()
-    {
-        Display display = ((WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+    public void StartCookieTimeLine() {
+        Display display = ((WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
         final int width = size.x;
@@ -167,10 +153,11 @@ public class AutoCookieService extends Service {
         Log.d("test", "heightPixels=" + height);
 
         List<TimeLineEvent> lists = new ArrayList<TimeLineEvent>();
-        lists.add(new TimeLineEvent(1000,TapCommand(928,655,width,height)));
-        lists.add(new TimeLineEvent(2000,TapCommand(863,603,width,height)));
-        lists.add(new TimeLineEvent(175000,TapCommand(412,644,width,height)));
-        if(timeLine != null)
+        //lists.add(new TimeLineEvent(10, TapCommand(width / 2, height / 3, width, height)));
+        lists.add(new TimeLineEvent(50, sendEvent(width / 2, height / 3, width, height)));
+        //lists.add(new TimeLineEvent(2000,TapCommand(863,603,width,height)));
+        //lists.add(new TimeLineEvent(175000,TapCommand(412,644,width,height)));
+        if (timeLine != null)
             timeLine.Stop();
 
         timeLine = new TimeLine(lists);
@@ -182,30 +169,57 @@ public class AutoCookieService extends Service {
         timeLine.Stop();
     }
 
-    private CommandCapture TapCommand(int x , int y) {
-        Log.d("AUTO_COOKIE","x:"+x+"/y:"+y);
-        return new CommandCapture(0,"input tap "+ x +" "+ y);
+    private CommandCapture TapCommand(int x, int y) {
+        Log.d("AUTO_COOKIE", "x:" + x + "/y:" + y);
+        return new CommandCapture(0, "input tap " + x + " " + y);
     }
 
-    private CommandCapture TapCommand(int x, int y, int screenW,int screenH)
-    {
+    private CommandCapture TapCommand(int x, int y, int screenW, int screenH) {
         //1280 X 720 base
-        return TapCommand((int)(x/1184f*screenW),(int)(y/720f*screenH));
+        return TapCommand((int) (x / 1184f * screenW), (int) (y / 720f * screenH));
+    }
+
+    private static int tracking_id = 200;
+
+    private CommandCapture sendEvent(int x, int y, int screenW, int screenH) {
+        String DEVICE_NAME = "/dev/input/event1";
+        String EV_ABS = "3";
+        String EV_SYN = "0";
+        MessageFormat mf = new MessageFormat(
+                "sendevent {0} {1} {2} {3}" +
+                "sendevent {0} {1} {2} {3}" +
+                "sendevent {0} {1} {2} {3}" +
+                "sendevent {0} {1} {2} {3}" +
+                "sendevent {0} {1} {2} {3}"
+        );
+
+
+        String msg = "" +
+                "sendevent /dev/input/event1 3 57 "+ (tracking_id++) +";" +
+                "sendevent /dev/input/event1 3 53 570;" +
+                "sendevent /dev/input/event1 3 54 500;" +
+                "sendevent /dev/input/event1 3 58 54;" +
+                "sendevent /dev/input/event1 0 0 0;" +
+                "sendevent /dev/input/event1 3 57 4294967295;" +
+                "sendevent /dev/input/event1 0 0 0;";
+
+
+        return new CommandCapture(0, msg);
     }
 
     public IBinder onBind(Intent intent) {
-        Log.d(AUTO_COOKIE,"ON BIND service");
+        Log.d(AUTO_COOKIE, "ON BIND service");
         return null;
     }
 
     @Override
     public void onDestroy() {
 
-        Log.d("AUTO_COOKIE","Destroy Cookie");
-        if(lock != null)
+        Log.d("AUTO_COOKIE", "Destroy Cookie");
+        if (lock != null)
             lock.release();
         bus.unregister(this);
-        if(timeLine != null)
+        if (timeLine != null)
             timeLine.Stop();
         overlay.destroyView();
         stopForegroundCompat(R.string.foreground_service_started);
@@ -215,16 +229,16 @@ public class AutoCookieService extends Service {
         Intent LaunchIntent = context.getPackageManager().getLaunchIntentForPackage("com.devsisters.CookieRunForKakao");
 
         LaunchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        Log.d(AUTO_COOKIE,LaunchIntent.getPackage());
+        Log.d(AUTO_COOKIE, LaunchIntent.getPackage());
         context.startActivity(LaunchIntent);
     }
 
 
-    private static final Class<?>[] mSetForegroundSignature = new Class[] {
+    private static final Class<?>[] mSetForegroundSignature = new Class[]{
             boolean.class};
-    private static final Class<?>[] mStartForegroundSignature = new Class[] {
+    private static final Class<?>[] mStartForegroundSignature = new Class[]{
             int.class, Notification.class};
-    private static final Class<?>[] mStopForegroundSignature = new Class[] {
+    private static final Class<?>[] mStopForegroundSignature = new Class[]{
             boolean.class};
 
     private NotificationManager mNM;
